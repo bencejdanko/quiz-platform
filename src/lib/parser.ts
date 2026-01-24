@@ -15,6 +15,7 @@ export interface QuizOption {
     text: string;
     rawText: string;
     isCorrect: boolean;
+    originalIndex?: number;
 }
 
 export type QuestionType = 'choice' | 'text';

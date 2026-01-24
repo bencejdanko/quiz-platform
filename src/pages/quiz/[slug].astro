@@ -6,11 +6,29 @@ import UserAuth from '../../components/UserAuth.astro';
 export const prerender = false;
 
 const { slug } = Astro.params;
-const quiz = await getQuizBySlug(slug!);
+const initialQuiz = await getQuizBySlug(slug!);
 
-if (!quiz) {
+if (!initialQuiz) {
     return Astro.redirect('/404');
 }
+
+// Deep clone and shuffle options to provide a random experience on every view
+// while maintaining the original indices for deterministic scoring.
+const quiz = JSON.parse(JSON.stringify(initialQuiz));
+quiz.questions.forEach((q: any) => {
+    if (q.type === 'choice' && q.options) {
+        // Attach original indices so we can shuffle safely
+        q.options.forEach((o: any, i: number) => {
+            o.originalIndex = i;
+        });
+        
+        // Fisher-Yates shuffle
+        for (let i = q.options.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [q.options[i], q.options[j]] = [q.options[j], q.options[i]];
+        }
+    }
+});
 ---
 
 
@@ -255,7 +273,7 @@ if (!quiz) {
 												<input 
 													type={isMulti ? "checkbox" : "radio"} 
 													name={question.id} 
-													value={oIndex} 
+													value={option.originalIndex ?? oIndex} 
 												/>
 												<span set:html={option.text}></span>
 											</label>
@@ -376,7 +394,7 @@ if (!quiz) {
 							const userSelections = formData.getAll(question.id).map(v => parseInt(v));
 							question.options.forEach((option, idx) => {
 								const label = card.querySelectorAll('.option-label')[idx];
-								const isUserSelected = userSelections.includes(idx);
+								const isUserSelected = userSelections.includes(option.originalIndex ?? idx);
 								const isActuallyCorrect = option.isCorrect;
 
 								if (isUserSelected && isActuallyCorrect) {
