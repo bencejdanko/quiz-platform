@@ -19,3 +19,7 @@ migrations_dir = "migrations"
 [vars]
 AUTH_TRUST_HOST = "true"
 
+[observability]
+[observability.logs]
+enabled = false
+invocation_logs = true
