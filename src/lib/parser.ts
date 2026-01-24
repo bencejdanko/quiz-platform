@@ -6,9 +6,7 @@ import remarkRehype from 'remark-rehype';
 import rehypeKatex from 'rehype-katex';
 import rehypeStringify from 'rehype-stringify';
 import { unified } from 'unified';
-import matter from 'gray-matter';
 import { toString } from 'mdast-util-to-string';
-import { createHash } from 'node:crypto';
 import type { Root, List } from 'mdast';
 
 export interface QuizOption {
@@ -36,17 +34,46 @@ export interface Quiz {
     questions: QuizQuestion[];
 }
 
-function generateId(text: string): string {
-    return createHash('sha256')
-        .update(text.trim().toLowerCase())
-        .digest('hex')
-        .slice(0, 12);
+/**
+ * Generates a deterministic ID using SHA-256 (Web Crypto API).
+ * This is robust and works in both Node.js, Browsers, and Edge Workers.
+ */
+async function generateId(text: string): Promise<string> {
+    const msgUint8 = new TextEncoder().encode(text.trim().toLowerCase());
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 12);
 }
 
-const htmlProcessor = unified()
-    .use(remarkRehype)
-    .use(rehypeKatex)
-    .use(rehypeStringify);
+/**
+ * A lightweight frontmatter parser that avoids Node.js globals like Buffer.
+ */
+function parseFrontmatter(markdown: string): { data: any; content: string } {
+    const match = markdown.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (!match) return { data: {}, content: markdown };
+
+    const yaml = match[1];
+    const content = markdown.slice(match[0].length).trim();
+    const data: any = {};
+
+    yaml.split(/\r?\n/).forEach(line => {
+        const colonIndex = line.indexOf(':');
+        if (colonIndex > 0) {
+            const key = line.slice(0, colonIndex).trim();
+            const value = line.slice(colonIndex + 1).trim();
+
+            if (value.startsWith('[') && value.endsWith(']')) {
+                data[key] = value.slice(1, -1)
+                    .split(',')
+                    .map(item => item.trim().replace(/^['"]|['"]$/g, ''));
+            } else {
+                data[key] = value.replace(/^['"]|['"]$/g, '');
+            }
+        }
+    });
+
+    return { data, content };
+}
 
 async function renderNodesToHtml(nodes: any[]): Promise<string> {
     const root = { type: 'root' as const, children: nodes };
@@ -65,7 +92,7 @@ async function renderNodesToHtml(nodes: any[]): Promise<string> {
 }
 
 export async function parseQuiz(markdown: string, strict: boolean = true): Promise<Quiz> {
-    const { data, content } = matter(markdown);
+    const { data, content } = parseFrontmatter(markdown);
 
     // In strict mode, slug is required. In non-strict mode, generate it if missing.
     let slug = data.slug;
@@ -129,7 +156,7 @@ export async function parseQuiz(markdown: string, strict: boolean = true): Promi
                 }
 
                 questions.push({
-                    id: generateId(rawQuestionText || questionHtml),
+                    id: await generateId(rawQuestionText || questionHtml),
                     text: questionHtml,
                     type: isTaskList ? 'choice' : 'text',
                     options,
