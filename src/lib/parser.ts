@@ -24,6 +24,7 @@ export interface QuizQuestion {
     text: string;
     type: QuestionType;
     options: QuizOption[];
+    explanation?: string;
 }
 
 export interface Quiz {
@@ -115,11 +116,22 @@ export async function parseQuiz(markdown: string, strict: boolean = true): Promi
                     isCorrect: isPlainList ? true : !!item.checked
                 })));
 
+                // Check if the next node is a blockquote (explanation)
+                let explanation: string | undefined = undefined;
+                if (i + 1 < tree.children.length && tree.children[i + 1].type === 'blockquote') {
+                    const blockquoteNode = tree.children[i + 1] as any;
+                    const explanationHtml = await renderNodesToHtml(blockquoteNode.children);
+                    explanation = explanationHtml;
+                    // Skip the blockquote node in the next iteration
+                    i++;
+                }
+
                 questions.push({
                     id: generateId(rawQuestionText || questionHtml),
                     text: questionHtml,
                     type: isTaskList ? 'choice' : 'text',
-                    options
+                    options,
+                    ...(explanation && { explanation })
                 });
                 
                 pendingNodes = [];
