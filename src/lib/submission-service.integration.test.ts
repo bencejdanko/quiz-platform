@@ -8,11 +8,14 @@ describe('SubmissionService Integration', () => {
     const testDbPath = 'test-integration.db';
     let service: SubmissionService;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         // We use the exported getDB function
         const db = getDB({ runtime: null }); // Forces local fallback
         
-        // Note: db.ts uses 'quiz.db' by default. 
+        // Clear tables to ensure clean state
+        await db.exec('DELETE FROM submission_answers');
+        await db.exec('DELETE FROM submissions');
+        
         service = new SubmissionService(db);
     });
 

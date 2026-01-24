@@ -2,11 +2,22 @@
 import { getAllQuizzes } from '../lib/loader';
 import Authors from '../components/Authors.astro';
 import UserAuth from '../components/UserAuth.astro';
+import { getDB } from '../lib/db';
+import { SubmissionService } from '../lib/submission-service';
 
 export const prerender = false;
 
-
 const quizzes = await getAllQuizzes();
+const allTags = [...new Set(quizzes.flatMap(q => q.tags))].sort();
+
+let counts: Record<string, number> = {};
+try {
+	const db = getDB(Astro.locals);
+	const submissionService = new SubmissionService(db);
+	counts = await submissionService.getAllSubmissionCounts();
+} catch (e) {
+	console.error('Failed to load submission counts', e);
+}
 ---
 
 <html lang="en">
@@ -111,9 +122,20 @@ const quizzes = await getAllQuizzes();
                 font-weight: 500;
                 text-decoration: none;
                 transition: background-color 0.2s;
+                display: flex;
+                align-items: center;
+                gap: 6px;
             }
             .view-submissions-btn:hover {
                 background-color: #2ea043;
+            }
+            .submission-count {
+                background-color: rgba(255, 255, 255, 0.2);
+                padding: 0 6px;
+                border-radius: 10px;
+                font-size: 10px;
+                min-width: 16px;
+                text-align: center;
             }
             .suggest-quiz-btn {
                 display: inline-block;
@@ -130,6 +152,65 @@ const quizzes = await getAllQuizzes();
             .suggest-quiz-btn:hover {
                 background-color: #2ea043;
             }
+            .tag-filters {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.75rem;
+                justify-content: center;
+                margin-bottom: 2.5rem;
+                max-width: 1000px;
+                width: 100%;
+            }
+            .tag-filter {
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                color: #8b949e;
+                padding: 6px 16px;
+                border-radius: 2em;
+                cursor: pointer;
+                font-size: 0.85rem;
+                font-weight: 500;
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                user-select: none;
+            }
+            .tag-filter:hover {
+                border-color: #58a6ff;
+                color: #58a6ff;
+                background: rgba(88, 166, 255, 0.1);
+            }
+            .tag-filter.active {
+                background-color: #0969da;
+                color: #ffffff;
+                border-color: #0969da;
+                box-shadow: 0 0 15px rgba(9, 105, 218, 0.4);
+            }
+            .quiz-tags {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.4rem;
+                margin-top: 0.75rem;
+            }
+            .tag {
+                display: inline-block;
+                padding: 0 10px;
+                font-size: 11px;
+                font-weight: 600;
+                line-height: 20px;
+                border-radius: 2em;
+                background-color: rgba(56, 139, 253, 0.15);
+                color: #58a6ff;
+                border: 1px solid rgba(56, 139, 253, 0.3);
+            }
+            .quiz-card {
+                transition: transform 0.2s, box-shadow 0.2s, opacity 0.3s;
+            }
+            .quiz-card.hidden {
+                display: none;
+            }
+            .quiz-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            }
 		</style>
 
 	</head>
@@ -143,21 +224,80 @@ const quizzes = await getAllQuizzes();
 				+ Suggest a Quiz
 			</a>
 		</div>
+
+        <div class="tag-filters">
+            {allTags.map(tag => (
+                <button class="tag-filter" data-tag={tag}>
+                    {tag}
+                </button>
+            ))}
+        </div>
 		<div class="quiz-grid">
 			{quizzes.map((quiz) => (
-				<div class="quiz-card" id={`quiz-${quiz.slug}`}>
+				<div class="quiz-card" id={`quiz-${quiz.slug}`} data-tags={quiz.tags.join(',')}>
 					<a href={`/quiz/${quiz.slug}`} style="text-decoration: none; color: inherit; display: block;">
                         <h2>{quiz.title}</h2>
 					    <p>{quiz.questions.length} Questions</p>
+                        <div class="quiz-tags">
+                            {quiz.tags.map(tag => <span class="tag">{tag}</span>)}
+                        </div>
                     </a>
                     <div class="quiz-card-footer">
                         <Authors authors={quiz.authors} />
                         <a href={`/submissions/${quiz.slug}`} class="view-submissions-btn" title="View Public Submissions">
                             <span class="btn-text">Submissions</span>
+                            <span class="submission-count">{counts[quiz.slug] || 0}</span>
                         </a>
                     </div>
 				</div>
 			))}
 		</div>
+
+        <script>
+            const filters = document.querySelectorAll('.tag-filter');
+            const cards = document.querySelectorAll('.quiz-card');
+            let activeTags = new Set();
+
+            filters.forEach(filter => {
+                filter.addEventListener('click', () => {
+                    const tag = filter.getAttribute('data-tag');
+                    
+                    if (activeTags.has(tag)) {
+                        activeTags.delete(tag);
+                        filter.classList.remove('active');
+                    } else {
+                        activeTags.add(tag);
+                        filter.classList.add('active');
+                    }
+
+                    updateVisibility();
+                });
+            });
+
+            function updateVisibility() {
+                cards.forEach(card => {
+                    const cardTagsAttr = card.getAttribute('data-tags');
+                    if (!cardTagsAttr) return;
+                    
+                    const cardTags = cardTagsAttr.split(',');
+                    
+                    if (activeTags.size === 0) {
+                        (card as HTMLElement).style.display = 'block';
+                        (card as HTMLElement).classList.remove('hidden');
+                        return;
+                    }
+
+                    const hasAllTags = Array.from(activeTags).every(tag => cardTags.includes(tag as string));
+                    
+                    if (hasAllTags) {
+                        (card as HTMLElement).style.display = 'block';
+                        (card as HTMLElement).classList.remove('hidden');
+                    } else {
+                        (card as HTMLElement).style.display = 'none';
+                        (card as HTMLElement).classList.add('hidden');
+                    }
+                });
+            }
+        </script>
 	</body>
 </html>

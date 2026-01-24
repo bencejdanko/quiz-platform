@@ -31,6 +31,7 @@ export interface Quiz {
     title: string;
     slug: string;
     authors?: string[];
+    tags: string[];
     questions: QuizQuestion[];
 }
 
@@ -152,10 +153,33 @@ export async function parseQuiz(markdown: string, strict: boolean = true): Promi
         authors = Array.isArray(data.authors) ? data.authors : [data.authors];
     }
 
+    let tags: string[] = [];
+    if (data.tags) {
+        tags = Array.isArray(data.tags) ? data.tags : [data.tags];
+    }
+
     return {
         title: data.title || (strict ? 'Untitled Quiz' : 'Suggested Quiz'),
         slug,
         authors,
+        tags,
         questions
     };
+}
+
+export async function renderMarkdown(text: string): Promise<string> {
+    const file = await unified()
+        .use(remarkParse)
+        .use(remarkMath)
+        .use(remarkRehype)
+        .use(rehypeKatex)
+        .use(rehypeStringify)
+        .process(text);
+    
+    let html = String(file).trim();
+    // Unwrap single paragraph
+    if (html.startsWith('<p>') && html.endsWith('</p>') && (html.match(/<p>/g) || []).length === 1) {
+        html = html.slice(3, -4).trim();
+    }
+    return html;
 }

@@ -12,7 +12,7 @@ export const prerender = false;
         <meta name="generator" content={Astro.generator} />
         <title>Suggest a Quiz - Quiz Platform</title>
         <meta name="description" content="Suggest a new quiz for the platform" />
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.27/dist/katex.min.css" integrity="sha384-JHxjRKUqUYj9FXEb7Y3uwDgXkzQ3sY5JdZN8Y3j9QwYQmvPvCFfRmPxKdqmKqLgG" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css">
         <style>
             :root {
                 --bg: #010409;
@@ -197,6 +197,16 @@ export const prerender = false;
                 padding-left: 1.5rem;
                 color: var(--error);
             }
+            .explanation {
+                margin-top: 1rem;
+                padding: 0.75rem;
+                background: rgba(88, 166, 255, 0.1);
+                border-left: 4px solid #58a6ff;
+                border-radius: 4px;
+                font-size: 0.9rem;
+                color: #c9d1d9;
+                line-height: 1.5;
+            }
             .copy-template-btn {
                 display: inline-block;
                 background-color: var(--success);
@@ -292,22 +302,49 @@ What is your second question?
             const errorMessage = document.getElementById('error-message') as HTMLElement;
             const loadExampleLink = document.getElementById('load-example') as HTMLAnchorElement;
 
-            let debounceTimer: number;
+            let debounceTimer: ReturnType<typeof setTimeout>;
 
             // Example template
-            const exampleTemplate = `What is the closest planet to the Sun? [Single Choice]
+            const exampleTemplate = `What is the closest planet to the Sun?
 - [x] Mercury
 - [ ] Venus
 - [ ] Mars
 
-Which of these are gas giants? [Multiple Choice]
+> Mercury is the closest planet to the Sun.
+
+Which of these are gas giants?
 - [x] Jupiter
 - [x] Saturn
 - [ ] Earth
 - [ ] Mars
 
-What is the closest moon to Jupiter? [Text Answer]
-- Metis`;
+> Jupiter and Saturn are gas giants.
+
+What is the closest moon to Jupiter?
+- Metis
+
+> Metis is the closest moon to Jupiter.
+>
+> Deimos is the smallest named moon in the solar system.
+
+What is the derivative of $f(x) = x^2$?
+- [x] $2x$
+- [ ] $x$
+- [ ] $x^3$
+- [ ] $2$
+
+Solve the following quadratic equation:
+
+$$
+x^2 - 5x + 6 = 0
+$$
+
+What are the roots?
+- [x] $x = 2$ and $x = 3$
+- [ ] $x = 1$ and $x = 6$
+- [ ] $x = -2$ and $x = -3$
+
+`;
 
             loadExampleLink.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -350,6 +387,11 @@ What is the closest moon to Jupiter? [Text Answer]
                                 html += `<li class="${className}">${indicator}${option.text}</li>`;
                             });
                             html += `</ul>`;
+                            
+                            if (question.explanation) {
+                                html += `<div class="explanation"><strong>Note:</strong> ${question.explanation}</div>`;
+                            }
+
                             html += `</div>`;
                         });
 

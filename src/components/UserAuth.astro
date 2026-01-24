@@ -18,7 +18,7 @@ const session = await getSession(Astro.request);
       <div class="dropdown-menu" id="user-dropdown">
         <div class="dropdown-header">
           <span class="username">{session.user?.name}</span>
-          <span class="useremail">{session.user?.username}</span>
+          <span class="useremail">{session.user?.email}</span>
         </div>
         <hr class="dropdown-divider" />
         <SignOut class="sign-out-btn">

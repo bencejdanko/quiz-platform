@@ -3,6 +3,7 @@ import { getQuizBySlug } from '../../lib/loader';
 import { getDB } from '../../lib/db';
 import { SubmissionService } from '../../lib/submission-service';
 import UserAuth from '../../components/UserAuth.astro';
+import { renderMarkdown } from '../../lib/parser';
 
 const { quizSlug } = Astro.params;
 const quiz = await getQuizBySlug(quizSlug!);
@@ -14,10 +15,32 @@ if (!quiz) {
 let submissions: any[] = [];
 let error: string | null = null;
 
+// Map of questionId to question for easy lookup
+const questionsById = quiz.questions.reduce((acc, q) => {
+    acc[q.id] = q;
+    return acc;
+}, {} as Record<string, any>);
+
 try {
     const db = getDB(Astro.locals);
     const submissionService = new SubmissionService(db);
-    submissions = await submissionService.getPublicSubmissions(quizSlug!);
+    submissions = await submissionService.getPublicSubmissionsWithAnswers(quizSlug!);
+    
+    // Pre-render incorrect responses
+    for (const sub of submissions) {
+        for (const ans of sub.incorrectAnswers) {
+            const q = questionsById[ans.questionId];
+            if (!q) continue;
+            
+            if (q.type === 'choice') {
+                ans.renderedResponse = ans.selectedIndices
+                    .map((idx: number) => q.options[idx]?.text || 'Unknown Option')
+                    .join(', ');
+            } else {
+                ans.renderedResponse = await renderMarkdown(ans.textAnswer || '');
+            }
+        }
+    }
 } catch (err: any) {
     console.error('Failed to fetch submissions:', err);
     error = "Database not available. Submissions cannot be loaded at this time.";
@@ -31,6 +54,7 @@ export const prerender = false;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width" />
     <title>Submissions - {quiz.title}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css">
     <style>
         :root {
             --bg: #010409;
@@ -38,6 +62,7 @@ export const prerender = false;
             --border: #30363d;
             --accent: #2f81f7;
             --success: #238636;
+            --error: #f85149;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -93,9 +118,68 @@ export const prerender = false;
         .submission-table tr:hover {
             background-color: #0d1117;
         }
+        .user-cell {
+            padding: 0 !important;
+        }
+        .user-details {
+            width: 100%;
+        }
+        .user-details summary {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+        }
+        .user-details summary::-webkit-details-marker {
+            display: none;
+        }
+        .user-details summary::before {
+            content: '▶';
+            font-size: 0.7rem;
+            margin-right: 0.5rem;
+            color: #8b949e;
+            transition: none !important;
+        }
+        .user-details[open] summary::before {
+            content: '▼';
+        }
         .user-id {
             color: var(--accent);
             font-weight: 500;
+        }
+        .incorrect-questions {
+            padding: 1rem;
+            background-color: #0d1117;
+            border-top: 1px solid var(--border);
+        }
+        .incorrect-questions h4 {
+            margin: 0 0 0.75rem 0;
+            font-size: 0.85rem;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .question-item {
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .question-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        .question-text {
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        .user-response {
+            font-size: 0.85rem;
+            color: var(--error);
+            padding-left: 0.5rem;
+            border-left: 2px solid var(--error);
         }
         .score {
             font-family: monospace;
@@ -122,6 +206,96 @@ export const prerender = false;
             border: 1px dashed var(--border);
             border-radius: 6px;
         }
+        /* No transitions as requested */
+        * {
+            transition: none !important;
+            animation: none !important;
+        }
+
+        :global(.latest-submissions), :global(.user-progression) {
+            margin-top: 2rem;
+            width: 100%;
+        }
+        :global(h2) {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+            color: #8b949e;
+        }
+        :global(.user-info-brief) {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        :global(.small-avatar) {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+        }
+        :global(.charts-container) {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        :global(.user-progression-row) {
+            display: flex;
+            background-color: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            height: 160px;
+            transition: border-color 0.2s, box-shadow 0.2s !important;
+        }
+        :global(.user-progression-row:hover) {
+            border-color: #444c56;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        :global(.user-profile-sidebar) {
+            width: 140px;
+            padding: 0.75rem;
+            background-color: #161b22;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            flex-shrink: 0;
+        }
+        :global(.user-avatar) {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            padding: 2px;
+            background-color: var(--bg);
+            object-fit: cover;
+            display: block;
+        }
+        :global(.user-name-label) {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--fg);
+            text-align: center;
+            word-break: break-all;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        :global(.user-stats) {
+            font-size: 0.75rem;
+            color: #8b949e;
+            text-align: center;
+        }
+        :global(.chart-wrapper) {
+            flex-grow: 1;
+            height: 100%;
+            padding: 1rem;
+            min-width: 0;
+        }
     </style>
 </head>
 <body>
@@ -136,38 +310,227 @@ export const prerender = false;
 
         {error && <div class="error-message">{error}</div>}
 
-        {submissions.length > 0 ? (
-            <table class="submission-table">
-                <thead>
-                    <tr>
-                        <th>User</th>
-                        <th>Score</th>
-                        <th>Submitted</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {submissions.map((sub) => (
+        <section class="latest-submissions">
+            <h2>Recent Submissions</h2>
+            {submissions.length > 0 ? (
+                <table class="submission-table">
+                    <thead>
                         <tr>
-                            <td class="user-id"><a href={`https://github.com/${sub.userId}`}>{sub.userId}</a></td>
-                            <td>
-                                <span class="score">{sub.score} / {sub.total}</span>
-                                <span style={{marginLeft: '8px', color: sub.score === sub.total ? '#3fb950' : '#8b949e'}}>
-                                    ({Math.round((sub.score / sub.total) * 100)}%)
-                                </span>
-                            </td>
-                            <td className="date">
-                                {new Date(sub.createdAt + " UTC").toLocaleString("en-US", {
-                                    timeZone: "America/Los_Angeles",
-                                    hour12: true,
-                                })}
-                            </td>
+                            <th>User</th>
+                            <th>Score</th>
+                            <th>Submitted</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
-        ) : (
-            !error && <div class="empty-state">No submissions yet. Be the first to complete this quiz!</div>
-        )}
+                    </thead>
+                    <tbody>
+                        {submissions.slice(0, 10).map((sub) => (
+                            <tr>
+                                <td class="user-cell">
+                                    <details class="user-details">
+                                        <summary>
+                                            <div class="user-info-brief">
+                                                <img 
+                                                    src={sub.userId.includes('@') ? `https://github.com/${sub.userId.split('@')[0]}.png` : `https://github.com/${sub.userId}.png`} 
+                                                    alt={sub.userId} 
+                                                    class="small-avatar"
+                                                    onerror="this.src='https://github.com/github.png'"
+                                                />
+                                                <span class="user-id">{sub.userId}</span>
+                                            </div>
+                                        </summary>
+                                        <div class="incorrect-questions">
+                                            <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                                                <h4>Incorrect Questions ({sub.incorrectAnswers.length})</h4>
+                                            </div>
+                                            {sub.incorrectAnswers.length > 0 ? (
+                                                sub.incorrectAnswers.map((ans: any) => {
+                                                    const q = questionsById[ans.questionId];
+                                                    return q ? (
+                                                        <div class="question-item">
+                                                            <span class="question-text" set:html={q.text} />
+                                                            <div class="user-response">
+                                                                <strong>Your response:</strong>{' '}
+                                                                <span set:html={ans.renderedResponse} />
+                                                            </div>
+                                                        </div>
+                                                    ) : <div class="question-item">Question no longer exists</div>;
+                                                })
+                                            ) : (
+                                                <div class="date">Perfect score! No incorrect answers.</div>
+                                            )}
+                                        </div>
+                                    </details>
+                                </td>
+                                <td>
+                                    <span class="score">{sub.score} / {sub.total}</span>
+                                    <span style={{marginLeft: '8px', color: sub.score === sub.total ? '#3fb950' : '#8b949e'}}>
+                                        ({Math.round((sub.score / sub.total) * 100)}%)
+                                    </span>
+                                </td>
+                                <td class="date">
+                                    {new Date(sub.createdAt + " UTC").toLocaleString("en-US", {
+                                        timeZone: "America/Los_Angeles",
+                                        hour12: true,
+                                    })}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            ) : (
+                !error && <div class="empty-state">No submissions yet. Be the first to complete this quiz!</div>
+            )}
+        </section>
+
+        <section class="user-progression">
+            {submissions.length > 0 && <h2>User Progression</h2>}
+            <div id="progression-charts" class="charts-container">
+                {/* Charts will be rendered here by client-side script */}
+            </div>
+        </section>
     </div>
+
+    <script is:inline src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <script define:vars={{ submissions }}>
+        function initCharts() {
+            const container = document.getElementById('progression-charts');
+            if (!container) return;
+
+            // Group submissions by user
+            const userSubmissions = {};
+            // Reverse so they are in chronological order for the progression chart
+            const sortedSubmissions = [...submissions].reverse();
+            
+            sortedSubmissions.forEach(sub => {
+                if (!userSubmissions[sub.userId]) {
+                    userSubmissions[sub.userId] = [];
+                }
+                userSubmissions[sub.userId].push(sub);
+            });
+
+            // Create a chart for each user
+            Object.entries(userSubmissions).forEach(([userId, subs]) => {
+                const userDiv = document.createElement('div');
+                userDiv.className = 'user-progression-row';
+                
+                const avatarUrl = userId.includes('@') ? `https://github.com/${userId.split('@')[0]}.png` : `https://github.com/${userId}.png`;
+                
+                userDiv.innerHTML = `
+                    <div class="user-profile-sidebar">
+                        <img src="${avatarUrl}" alt="${userId}" class="user-avatar" onerror="this.src='https://github.com/github.png'">
+                        <span class="user-name-label">${userId}</span>
+                        <div class="user-stats">
+                            ${subs.length} submission${subs.length > 1 ? 's' : ''}
+                        </div>
+                    </div>
+                    <div class="chart-wrapper" id="chart-${userId.replace(/[^a-z0-9]/gi, '-')}"></div>
+                `;
+                
+                container.appendChild(userDiv);
+                
+                const chartDom = userDiv.querySelector('.chart-wrapper');
+                const myChart = echarts.init(chartDom);
+                
+                const option = {
+                    backgroundColor: 'transparent',
+                    tooltip: {
+                        trigger: 'item',
+                        formatter: function (params) {
+                            const sub = subs[params.dataIndex];
+                            const date = new Date(sub.createdAt + " UTC").toLocaleString();
+                            return `
+                                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; padding: 8px;">
+                                    <div style="font-weight: 600; margin-bottom: 4px; color: #e6edf3;">Submission #${params.dataIndex + 1}</div>
+                                    <div style="color: #8b949e; font-size: 11px; margin-bottom: 8px;">${date}</div>
+                                    <div style="display: flex; justify-content: space-between; gap: 12px; align-items: center;">
+                                        <span style="color: #8b949e; font-size: 12px;">Score:</span>
+                                        <span style="color: #3fb950; font-weight: 600;">${sub.score} / ${sub.total}</span>
+                                    </div>
+                                </div>
+                            `;
+                        },
+                        backgroundColor: '#161b22',
+                        borderColor: '#30363d',
+                        borderWidth: 1,
+                        textStyle: { color: '#e6edf3' },
+                        extraCssText: 'box-shadow: 0 8px 24px rgba(0,0,0,0.5); border-radius: 6px;'
+                    },
+                    grid: {
+                        left: '40',
+                        right: '20',
+                        bottom: '30',
+                        top: '10',
+                        containLabel: false
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: subs.map((_, i) => i + 1),
+                        axisLine: { lineStyle: { color: '#30363d' } },
+                        axisLabel: { color: '#8b949e', fontSize: 10 },
+                        axisTick: { show: false }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        min: 0,
+                        max: subs[0].total,
+                        interval: Math.max(1, Math.ceil(subs[0].total / 5)),
+                        axisLine: { show: false },
+                        axisLabel: { color: '#8b949e', fontSize: 10 },
+                        splitLine: { lineStyle: { color: '#21262d' } }
+                    },
+                    series: [
+                        {
+                            data: subs.map(s => s.score),
+                            type: 'line',
+                            smooth: true,
+                            showSymbol: true,
+                            symbol: 'circle',
+                            symbolSize: 8,
+                            lineStyle: {
+                                width: 3,
+                                color: '#3fb950'
+                            },
+                            itemStyle: {
+                                color: '#3fb950',
+                                borderColor: '#0d1117',
+                                borderWidth: 2
+                            },
+                            areaStyle: {
+                                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                    {
+                                        offset: 0,
+                                        color: 'rgba(63, 185, 80, 0.3)'
+                                    },
+                                    {
+                                        offset: 1,
+                                        color: 'rgba(63, 185, 80, 0)'
+                                    }
+                                ])
+                            },
+                            emphasis: {
+                                scale: 1.4,
+                                itemStyle: {
+                                    borderWidth: 3
+                                }
+                            }
+                        }
+                    ]
+                };
+
+                myChart.setOption(option);
+                
+                // Make chart responsive
+                window.addEventListener('resize', () => {
+                    myChart.resize();
+                });
+            });
+        }
+
+        // Run after initial load
+        if (document.readyState === 'complete') {
+            initCharts();
+        } else {
+            window.addEventListener('load', initCharts);
+        }
+    </script>
 </body>
 </html>
