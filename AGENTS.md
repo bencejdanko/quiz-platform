@@ -63,11 +63,55 @@ The project uses a tiered testing approach:
 
 ## 🚀 Production Deployment
 
-The application is designed to be deployed on **Cloudflare Pages** with **D1 database** integration.
+The application is deployed to **Cloudflare Workers** with **D1 database** integration.
 
-### Quick Deploy Checklist
-1. ✅ D1 database created and migrations applied (`npx wrangler d1 migrations apply quiz-db --remote`)
-2. ✅ GitHub OAuth app configured for production domain
-3. ✅ Environment variables set (GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, AUTH_SECRET, AUTH_TRUST_HOST)
-4. ✅ D1 database binding configured in Cloudflare Pages
-5. ✅ Deploy via GitHub integration or `npx wrangler pages deploy dist`
+### Quick Deploy Steps
+
+1. **Apply database migrations to production**:
+   ```bash
+   pnpm wrangler d1 migrations apply quiz-db --remote
+   ```
+
+2. **Set environment secrets** (one-time setup):
+   ```bash
+   # These will prompt you to enter the values securely
+   pnpm wrangler secret put GITHUB_CLIENT_ID
+   pnpm wrangler secret put GITHUB_CLIENT_SECRET
+   pnpm wrangler secret put AUTH_SECRET
+   ```
+
+3. **Deploy the application**:
+   ```bash
+   pnpm build
+   pnpm wrangler deploy
+   ```
+
+### Automated Deployment
+
+Use the provided script:
+```bash
+./deploy.sh
+```
+
+This script will:
+- Read secrets from your `.env` file
+- Set them in Cloudflare
+- Apply D1 migrations
+- Deploy the Worker
+
+### Environment Variables Required
+
+- `GITHUB_CLIENT_ID` - GitHub OAuth app client ID (for production domain)
+- `GITHUB_CLIENT_SECRET` - GitHub OAuth app client secret
+- `AUTH_SECRET` - Random secret for auth (generate with `openssl rand -base64 32`)
+- `AUTH_TRUST_HOST` - Set to `true` (already in `wrangler.toml`)
+
+### GitHub OAuth Setup
+
+Create a production GitHub OAuth app:
+1. Go to https://github.com/settings/developers
+2. Create a new OAuth app
+3. Set callback URL to: `https://quiz-platform.<your-subdomain>.workers.dev/api/auth/callback/github`
+4. Copy the Client ID and Client Secret
+
+**Security Note**: The D1 database ID in `wrangler.toml` is safe to commit publicly. It's a resource identifier, not a secret.

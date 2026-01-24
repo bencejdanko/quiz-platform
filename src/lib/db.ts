@@ -1,7 +1,3 @@
-import { DatabaseSync } from 'node:sqlite';
-import fs from 'node:fs';
-import path from 'node:path';
-
 export interface D1Database {
     prepare(query: string): D1PreparedStatement;
     batch<T = any>(statements: D1PreparedStatement[]): Promise<D1Result<T>[]>;
@@ -38,14 +34,19 @@ export interface D1ExecResult {
 
 // Local SQLite implementation that matches D1 interface
 class LocalDB implements D1Database {
-    private db: DatabaseSync;
+    private db: any;
 
     constructor(dbPath: string) {
+        // Dynamic import to avoid bundling in production
+        const { DatabaseSync } = require('node:sqlite');
+        const fs = require('node:fs');
+        const path = require('node:path');
+        
         this.db = new DatabaseSync(dbPath);
-        this.init();
+        this.init(fs, path);
     }
 
-    private init() {
+    private init(fs: any, path: any) {
         // Run migrations if file exists
         const migrationsPath = path.join(process.cwd(), 'migrations', '0000_initial.sql');
         if (fs.existsSync(migrationsPath)) {
@@ -138,17 +139,15 @@ let localDbInstance: LocalDB | null = null;
 
 // Helper to get DB binding
 export function getDB(locals: any): D1Database {
-    if (locals?.runtime?.env?.DB) {
-        return locals.runtime.env.DB;
+    // Check for D1 binding (production on Cloudflare)
+    if (locals?.runtime?.env?.quiz_db) {
+        return locals.runtime.env.quiz_db;
     }
     
     // Fallback to local SQLite for development
-    if (process.env.NODE_ENV !== 'production' || !locals?.runtime) {
-        if (!localDbInstance) {
-            localDbInstance = new LocalDB('quiz.db');
-        }
-        return localDbInstance;
+    if (!localDbInstance) {
+        localDbInstance = new LocalDB('quiz.db');
     }
-    
-    throw new Error('D1 Database binding (DB) not found. Ensure it is configured in wrangler.toml and passed via platform.');
+    return localDbInstance;
 }
+

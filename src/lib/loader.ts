@@ -1,22 +1,14 @@
-import * as fs from 'node:fs/promises';
-import * as path from 'node:path';
-import { parseQuiz } from './parser';
+import quizzesData from '../data/quizzes.json';
+import type { Quiz } from './parser';
 
-export async function getAllQuizzes() {
-    const quizzesDir = path.join(process.cwd(), 'quizzes');
-    const files = await fs.readdir(quizzesDir);
-    const mdFiles = files.filter(f => f.endsWith('.md'));
-    
-    const quizzes = [];
-    for (const file of mdFiles) {
-        const content = await fs.readFile(path.join(quizzesDir, file), 'utf-8');
-        quizzes.push(await parseQuiz(content));
-    }
-    
+// Pre-built quiz data from build step
+const quizzes = quizzesData as Quiz[];
+
+export async function getAllQuizzes(): Promise<Quiz[]> {
     return quizzes;
 }
 
-export async function getQuizBySlug(slug: string) {
-    const quizzes = await getAllQuizzes();
+export async function getQuizBySlug(slug: string): Promise<Quiz | undefined> {
     return quizzes.find(q => q.slug === slug);
 }
+
