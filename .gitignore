@@ -23,4 +23,13 @@ pnpm-debug.log*
 # jetbrains setting folder
 .idea/
 
+# Private keys and certificates
 *.pem
+
+# Local development database
+quiz.db
+quiz.db-journal
+
+# Wrangler local state
+.wrangler/
+.dev.vars

@@ -11,8 +11,8 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/node": "^9.5.2",
-    "@auth/core": "^0.34.3",
+    "@astrojs/cloudflare": "^12.6.12",
+    "@auth/core": "^0.37.4",
     "@types/katex": "^0.16.8",
     "astro": "^5.16.15",
     "auth-astro": "^4.2.0",

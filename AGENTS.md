@@ -58,3 +58,16 @@ The project uses a tiered testing approach:
 1. **Unit Tests (`*.test.ts`)**: Pure logic tests using Vitest and Mocks. Fast and deterministic.
 2. **Integration Tests (`*.integration.test.ts`)**: Verifies data persistence using the local SQLite fallback. Ensures that the schema matches the code implementation.
 3. **API Contracts**: The correctness map (`src/data/correctness.json`) acts as a contract between the static build and the live API.
+
+---
+
+## 🚀 Production Deployment
+
+The application is designed to be deployed on **Cloudflare Pages** with **D1 database** integration.
+
+### Quick Deploy Checklist
+1. ✅ D1 database created and migrations applied (`npx wrangler d1 migrations apply quiz-db --remote`)
+2. ✅ GitHub OAuth app configured for production domain
+3. ✅ Environment variables set (GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, AUTH_SECRET, AUTH_TRUST_HOST)
+4. ✅ D1 database binding configured in Cloudflare Pages
+5. ✅ Deploy via GitHub integration or `npx wrangler pages deploy dist`

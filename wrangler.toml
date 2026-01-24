@@ -2,7 +2,7 @@ name = "quiz-platform"
 compatibility_date = "2024-01-01"
 
 [[d1_databases]]
-binding = "DB"
+binding = "quiz_db"
 database_name = "quiz-db"
-database_id = "your-database-id-here"
+database_id = "a0670b78-574e-456f-a769-3956a2717cb2"
 migrations_dir = "migrations"
