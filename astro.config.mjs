@@ -7,8 +7,14 @@ import auth from 'auth-astro';
 export default defineConfig({
   output: 'server',
   adapter: cloudflare({
+    imageService: 'compile',
     platformProxy: {
       enabled: true
+    },
+    routes: {
+      extend: {
+        exclude: [{ pattern: '/_astro/*' }]
+      }
     }
   }),
   integrations: [auth()]
