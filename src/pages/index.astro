@@ -115,6 +115,21 @@ const quizzes = await getAllQuizzes();
             .view-submissions-btn:hover {
                 background-color: #2ea043;
             }
+            .suggest-quiz-btn {
+                display: inline-block;
+                background-color: #238636;
+                color: white;
+                border: 1px solid rgba(240, 246, 252, 0.1);
+                border-radius: 6px;
+                padding: 8px 20px;
+                font-size: 14px;
+                font-weight: 500;
+                text-decoration: none;
+                transition: background-color 0.2s;
+            }
+            .suggest-quiz-btn:hover {
+                background-color: #2ea043;
+            }
 		</style>
 
 	</head>
@@ -123,6 +138,11 @@ const quizzes = await getAllQuizzes();
 		<header class="main-header">
 			<h1>Quizzes</h1>
 		</header>
+		<div style="text-align: center; margin-bottom: 2rem;">
+			<a href="/suggest" class="suggest-quiz-btn">
+				+ Suggest a Quiz
+			</a>
+		</div>
 		<div class="quiz-grid">
 			{quizzes.map((quiz) => (
 				<div class="quiz-card" id={`quiz-${quiz.slug}`}>

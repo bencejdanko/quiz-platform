@@ -21,6 +21,7 @@
     "rehype-stringify": "^10.0.1",
     "remark-math": "^6.0.0",
     "remark-rehype": "^11.1.2",
+    "resend": "^6.8.0",
     "unified": "^11.0.5",
     "wrangler": "^4.60.0"
   },

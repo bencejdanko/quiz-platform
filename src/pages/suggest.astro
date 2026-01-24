@@ -1,0 +1,424 @@
+---
+import UserAuth from '../components/UserAuth.astro';
+
+export const prerender = false;
+---
+
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <meta name="viewport" content="width=device-width" />
+        <meta name="generator" content={Astro.generator} />
+        <title>Suggest a Quiz - Quiz Platform</title>
+        <meta name="description" content="Suggest a new quiz for the platform" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.27/dist/katex.min.css" integrity="sha384-JHxjRKUqUYj9FXEb7Y3uwDgXkzQ3sY5JdZN8Y3j9QwYQmvPvCFfRmPxKdqmKqLgG" crossorigin="anonymous">
+        <style>
+            :root {
+                --bg: #010409;
+                --fg: #ffffff;
+                --accent: #ffffff;
+                --card-bg: #010409;
+                --card-border: #ffffff;
+                --input-bg: #0d1117;
+                --input-border: #30363d;
+                --success: #238636;
+                --success-text: #ffffffff;
+                --error: #da3633;
+            }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+                background-color: var(--bg);
+                color: var(--fg);
+                margin: 0;
+                padding: 2rem;
+                min-height: 100vh;
+            }
+            .container {
+                max-width: 1400px;
+                margin: 0 auto;
+            }
+            h1 {
+                font-size: 2rem;
+                margin: 0 0 1rem 0;
+                color: var(--fg);
+                font-weight: 600;
+            }
+            .description {
+                color: #8b949e;
+                margin-bottom: 2rem;
+                line-height: 1.6;
+            }
+            .back-link {
+                color: var(--fg);
+                text-decoration: none;
+                display: inline-block;
+                margin-bottom: 1.5rem;
+                transition: opacity 0.2s;
+            }
+            .back-link:hover {
+                opacity: 0.7;
+            }
+            .editor-container {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 2rem;
+                margin-bottom: 2rem;
+            }
+            @media (max-width: 900px) {
+                .editor-container {
+                    grid-template-columns: 1fr;
+                }
+            }
+            .editor-panel, .preview-panel {
+                background: var(--card-bg);
+                border: 1px solid var(--card-border);
+                border-radius: 6px;
+                padding: 1.5rem;
+            }
+            .panel-header {
+                font-size: 1.1rem;
+                font-weight: 600;
+                margin-bottom: 1rem;
+                color: var(--fg);
+            }
+            textarea {
+                width: 100%;
+                min-height: 500px;
+                background: var(--input-bg);
+                border: 1px solid var(--input-border);
+                border-radius: 6px;
+                color: var(--fg);
+                padding: 1rem;
+                font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+                font-size: 14px;
+                line-height: 1.6;
+                resize: vertical;
+                box-sizing: border-box;
+            }
+            textarea:focus {
+                outline: none;
+                border-color: #58a6ff;
+            }
+            .form-group {
+                margin-bottom: 1.5rem;
+            }
+            label {
+                display: block;
+                margin-bottom: 0.5rem;
+                color: var(--fg);
+                font-weight: 500;
+            }
+            input[type="text"] {
+                width: 100%;
+                background: var(--input-bg);
+                border: 1px solid var(--input-border);
+                border-radius: 6px;
+                color: var(--fg);
+                padding: 0.5rem 0.75rem;
+                font-size: 14px;
+                box-sizing: border-box;
+            }
+            input[type="text"]:focus {
+                outline: none;
+                border-color: #58a6ff;
+            }
+            .submit-btn {
+                background-color: var(--success);
+                color: white;
+                border: 1px solid rgba(240, 246, 252, 0.1);
+                border-radius: 6px;
+                padding: 0.5rem 1.5rem;
+                font-size: 14px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: background-color 0.2s;
+            }
+            .submit-btn:hover {
+                background-color: #2ea043;
+            }
+            .submit-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+            .preview-content {
+                color: var(--fg);
+            }
+            .preview-content h2 {
+                font-size: 1.5rem;
+                margin: 1.5rem 0 1rem 0;
+                color: var(--fg);
+            }
+            .preview-content p {
+                margin: 0.5rem 0;
+                line-height: 1.6;
+            }
+            .preview-content ul {
+                list-style: none;
+                padding: 0;
+                margin: 0.5rem 0;
+            }
+            .preview-content li {
+                padding: 0.5rem;
+                margin: 0.25rem 0;
+                background: var(--input-bg);
+                border: 1px solid var(--input-border);
+                border-radius: 4px;
+            }
+            .preview-content li.correct {
+                border-color: var(--success);
+                background: rgba(35, 134, 54, 0.1);
+            }
+            .error-message {
+                background: rgba(218, 54, 51, 0.1);
+                border: 1px solid var(--error);
+                border-radius: 6px;
+                padding: 1rem;
+                margin-bottom: 1rem;
+                color: var(--error);
+            }
+            .success-message {
+                background: rgba(35, 134, 54, 0.1);
+                border: 1px solid var(--success);
+                border-radius: 6px;
+                padding: 1rem;
+                margin-bottom: 1rem;
+                color: var(--success);
+            }
+            .validation-errors {
+                background: rgba(218, 54, 51, 0.1);
+                border: 1px solid var(--error);
+                border-radius: 6px;
+                padding: 1rem;
+                margin-top: 1rem;
+            }
+            .validation-errors ul {
+                margin: 0.5rem 0 0 0;
+                padding-left: 1.5rem;
+                color: var(--error);
+            }
+            .copy-template-btn {
+                display: inline-block;
+                background-color: var(--success);
+                color: var(--success-text);
+                border: 1px solid var(--success-text);
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-size: 14px;
+                font-weight: 500;
+                text-decoration: none;
+                cursor: pointer;
+                transition: background-color 0.2s;
+                margin-bottom: 1rem;
+            }
+            .copy-template-btn:hover {
+                background-color: #2ea043;
+            }
+            .loading {
+                opacity: 0.6;
+            }
+        </style>
+    </head>
+    <body>
+        <UserAuth />
+        <div class="container">
+            <a href="/" class="back-link">← Back to Quizzes</a>
+            
+            <h1>Suggest a Quiz</h1>
+            <p class="description">
+                Create a new quiz using Markdown syntax.
+            </p>
+            <button type="button" class="copy-template-btn" id="load-example">
+                Copy Template to Get Started
+            </button>
+
+            <div id="success-message" class="success-message" style="display: none;"></div>
+            <div id="error-message" class="error-message" style="display: none;"></div>
+
+            <form id="suggestion-form">
+                <div class="editor-container">
+                    <div class="editor-panel">
+                        <div class="panel-header">Markdown Editor</div>
+                        <textarea 
+                            id="markdown-input" 
+                            name="markdown" 
+                            placeholder="What is your first question?
+- [x] Correct answer
+- [ ] Wrong answer
+- [ ] Another wrong answer
+
+What is your second question?
+- [x] Correct answer
+- [ ] Wrong answer"
+                            required
+                        ></textarea>
+                        
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <label for="github-username">
+                                GitHub Username (optional)
+                            </label>
+                            <input 
+                                type="text" 
+                                id="github-username" 
+                                name="githubUsername" 
+                                placeholder="octocat"
+                            />
+                        </div>
+
+                        <button type="submit" class="submit-btn">Submit Suggestion</button>
+                    </div>
+
+                    <div class="preview-panel">
+                        <div class="panel-header">Live Preview</div>
+                        <div id="preview-content" class="preview-content">
+                            <p style="color: #8b949e;">Your quiz preview will appear here as you type...</p>
+                        </div>
+                        <div id="validation-errors" class="validation-errors" style="display: none;">
+                            <strong>Validation Errors:</strong>
+                            <ul id="error-list"></ul>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <script>
+            const markdownInput = document.getElementById('markdown-input') as HTMLTextAreaElement;
+            const previewContent = document.getElementById('preview-content') as HTMLElement;
+            const validationErrors = document.getElementById('validation-errors') as HTMLElement;
+            const errorList = document.getElementById('error-list') as HTMLElement;
+            const form = document.getElementById('suggestion-form') as HTMLFormElement;
+            const successMessage = document.getElementById('success-message') as HTMLElement;
+            const errorMessage = document.getElementById('error-message') as HTMLElement;
+            const loadExampleLink = document.getElementById('load-example') as HTMLAnchorElement;
+
+            let debounceTimer: number;
+
+            // Example template
+            const exampleTemplate = `What is the closest planet to the Sun? [Single Choice]
+- [x] Mercury
+- [ ] Venus
+- [ ] Mars
+
+Which of these are gas giants? [Multiple Choice]
+- [x] Jupiter
+- [x] Saturn
+- [ ] Earth
+- [ ] Mars
+
+What is the closest moon to Jupiter? [Text Answer]
+- Metis`;
+
+            loadExampleLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                markdownInput.value = exampleTemplate;
+                updatePreview();
+            });
+
+            async function updatePreview() {
+                const markdown = markdownInput.value;
+                
+                if (!markdown.trim()) {
+                    previewContent.innerHTML = '<p style="color: #8b949e;">Your quiz preview will appear here as you type...</p>';
+                    validationErrors.style.display = 'none';
+                    return;
+                }
+
+                try {
+                    // Parse the markdown on the client side
+                    const response = await fetch('/api/preview-quiz', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ markdown })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        // Render the quiz preview
+                        let html = `<h2>${data.quiz.title}</h2>`;
+                        
+                        data.quiz.questions.forEach((question: any, index: number) => {
+                            html += `<div style="margin: 1.5rem 0;">`;
+                            html += `<p><strong>Question ${index + 1}:</strong> ${question.text}</p>`;
+                            html += `<ul>`;
+                            question.options.forEach((option: any) => {
+                                const className = option.isCorrect ? 'correct' : '';
+                                const indicator = option.isCorrect ? '✓ ' : '';
+                                html += `<li class="${className}">${indicator}${option.text}</li>`;
+                            });
+                            html += `</ul>`;
+                            html += `</div>`;
+                        });
+
+                        previewContent.innerHTML = html;
+                        validationErrors.style.display = 'none';
+                    } else {
+                        previewContent.innerHTML = '<p style="color: #8b949e;">Fix the errors below to see preview...</p>';
+                        errorList.innerHTML = data.errors.map((err: string) => `<li>${err}</li>`).join('');
+                        validationErrors.style.display = 'block';
+                    }
+                } catch (error) {
+                    console.error('Preview error:', error);
+                    previewContent.innerHTML = '<p style="color: var(--error);">Error generating preview</p>';
+                }
+            }
+
+            markdownInput.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(updatePreview, 500);
+            });
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitting...';
+                
+                successMessage.style.display = 'none';
+                errorMessage.style.display = 'none';
+
+                const formData = new FormData(form);
+                const data = {
+                    markdown: formData.get('markdown'),
+                    githubUsername: formData.get('githubUsername')
+                };
+
+                try {
+                    const response = await fetch('/api/suggest', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        successMessage.textContent = result.message;
+                        successMessage.style.display = 'block';
+                        form.reset();
+                        previewContent.innerHTML = '<p style="color: #8b949e;">Your quiz preview will appear here as you type...</p>';
+                        validationErrors.style.display = 'none';
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    } else {
+                        errorMessage.textContent = 'Submission failed: ' + result.errors.join(', ');
+                        errorMessage.style.display = 'block';
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                } catch (error) {
+                    errorMessage.textContent = 'An unexpected error occurred. Please try again.';
+                    errorMessage.style.display = 'block';
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Suggestion';
+                }
+            });
+        </script>
+    </body>
+</html>

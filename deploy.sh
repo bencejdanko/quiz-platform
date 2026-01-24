@@ -27,6 +27,16 @@ echo "$GITHUB_CLIENT_SECRET" | pnpm wrangler secret put GITHUB_CLIENT_SECRET
 echo "Setting AUTH_SECRET..."
 echo "$AUTH_SECRET" | pnpm wrangler secret put AUTH_SECRET
 
+
+echo "Setting RESEND_API_KEY..."
+echo "$RESEND_API_KEY" | pnpm wrangler secret put RESEND_API_KEY
+
+echo "Setting RESEND_FROM_EMAIL..."
+echo "$RESEND_FROM_EMAIL" | pnpm wrangler secret put RESEND_FROM_EMAIL
+
+echo "Setting SUGGESTION_EMAIL..."
+echo "$SUGGESTION_EMAIL" | pnpm wrangler secret put SUGGESTION_EMAIL
+
 echo ""
 echo "✅ Secrets configured"
 echo ""

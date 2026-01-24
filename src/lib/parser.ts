@@ -61,11 +61,25 @@ async function renderNodesToHtml(nodes: any[]): Promise<string> {
     return html.trim();
 }
 
-export async function parseQuiz(markdown: string): Promise<Quiz> {
+export async function parseQuiz(markdown: string, strict: boolean = true): Promise<Quiz> {
     const { data, content } = matter(markdown);
 
-    if (!data.slug) {
-        throw new Error('Quiz must have a slug in frontmatter');
+    // In strict mode, slug is required. In non-strict mode, generate it if missing.
+    let slug = data.slug;
+    if (!slug) {
+        if (strict) {
+            throw new Error('Quiz must have a slug in frontmatter');
+        }
+        
+        // Generate slug from title or use a default
+        if (data.title) {
+            slug = data.title
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-|-$/g, '');
+        } else {
+            slug = 'suggested-quiz-' + Date.now();
+        }
     }
 
     const processor = remark()
@@ -127,8 +141,8 @@ export async function parseQuiz(markdown: string): Promise<Quiz> {
     }
 
     return {
-        title: data.title || 'Untitled Quiz',
-        slug: data.slug,
+        title: data.title || (strict ? 'Untitled Quiz' : 'Suggested Quiz'),
+        slug,
         authors,
         questions
     };
