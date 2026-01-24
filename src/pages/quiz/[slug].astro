@@ -1,26 +1,25 @@
 ---
-import { getAllQuizzes } from '../../lib/loader';
+import { getQuizBySlug } from '../../lib/loader';
 import Authors from '../../components/Authors.astro';
+import UserAuth from '../../components/UserAuth.astro';
 
-export const prerender = true;
+export const prerender = false;
 
-export async function getStaticPaths() {
-    const quizzes = await getAllQuizzes();
-    return quizzes.map(quiz => ({
-        params: { slug: quiz.slug },
-        props: { quiz }
-    }));
+const { slug } = Astro.params;
+const quiz = await getQuizBySlug(slug!);
+
+if (!quiz) {
+    return Astro.redirect('/404');
 }
-
-const { quiz } = Astro.props;
 ---
+
 
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
 		<title>{quiz.title} | Quiz Platform</title>
-		<style>
+		<style is:global>
 			:root {
 				--bg: #010409;
 				--fg: #ffffff;
@@ -201,6 +200,16 @@ const { quiz } = Astro.props;
 			}
 			.status-badge.correct { color: #3fb950; }
 			.status-badge.incorrect { color: #f85149; }
+			
+			.community-hint {
+				margin-top: 1rem;
+				font-size: 0.85rem;
+				color: #8b949e;
+				display: flex;
+				align-items: center;
+				gap: 4px;
+				font-style: italic;
+			}
 
 			input:disabled {
 				cursor: not-allowed;
@@ -210,6 +219,7 @@ const { quiz } = Astro.props;
 		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css">
 	</head>
 	<body>
+        <UserAuth />
 		<div class="container">
 			<header>
 				<a href="/">← Back to Hub</a>
@@ -329,6 +339,7 @@ const { quiz } = Astro.props;
 					
 					// Update UI with results
 					data.results = data.results || {};
+					const stats = data.stats || {};
 
 					quizData.questions.forEach((question) => {
 						const isCorrect = data.results[question.id];
@@ -340,6 +351,15 @@ const { quiz } = Astro.props;
 						badge.innerText = isCorrect ? 'Correct' : 'Incorrect';
 						card.prepend(badge);
 						card.classList.add(isCorrect ? 'correct' : 'incorrect');
+
+						// Add community hint
+						if (stats[question.id]) {
+							const hintDiv = document.createElement('div');
+							hintDiv.className = 'community-hint';
+							const rate = Math.round(stats[question.id].correctRate * 100);
+							hintDiv.innerHTML = `<svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor" style="vertical-align: middle; margin-right: 4px;"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25z"></path></svg>${rate}% of submissions got this correct`;
+							card.appendChild(hintDiv);
+						}
 
 						if (question.type === 'choice') {
 							const userSelections = formData.getAll(question.id).map(v => parseInt(v));
@@ -376,9 +396,10 @@ const { quiz } = Astro.props;
 					resultDiv.innerHTML = `
 						<h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Quiz Complete!</h2>
 						<p style="font-size: 1.25rem; margin-bottom: 1.5rem;">Your Score: <span style="color: #58a6ff; font-weight: 600;">${data.score} / ${data.total}</span></p>
-						<div style="display: flex; gap: 1rem; justify-content: center;">
-							<a href="/" style="color: #58a6ff; text-decoration: none; padding: 0.5rem 1rem; border: 1px solid #30363d; border-radius: 6px;">Return to Home</a>
-							<button onclick="window.location.reload()" style="background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">Try Again</button>
+						<div style="display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center;">
+							<a href="/" style="color: #c9d1d9; text-decoration: none; padding: 0.5rem 1rem; border: 1px solid #30363d; border-radius: 6px; font-size: 0.9rem;">Hub</a>
+							<a href="/submissions/${quizSlug}" style="background: #238636; color: white; text-decoration: none; padding: 0.5rem 1rem; border: 1px solid rgba(240, 246, 252, 0.1); border-radius: 6px; font-size: 0.9rem; font-weight: 600;">View Public Results</a>
+							<button onclick="window.location.reload()" style="background: #21262d; border: 1px solid #30363d; color: #c9d1d9; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">Try Again</button>
 						</div>
 					`;
 					resultDiv.className = 'visible success';

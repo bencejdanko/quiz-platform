@@ -1,0 +1,173 @@
+---
+import { getQuizBySlug } from '../../lib/loader';
+import { getDB } from '../../lib/db';
+import { SubmissionService } from '../../lib/submission-service';
+import UserAuth from '../../components/UserAuth.astro';
+
+const { quizSlug } = Astro.params;
+const quiz = await getQuizBySlug(quizSlug!);
+
+if (!quiz) {
+    return Astro.redirect('/404');
+}
+
+let submissions: any[] = [];
+let error: string | null = null;
+
+try {
+    const db = getDB(Astro.locals);
+    const submissionService = new SubmissionService(db);
+    submissions = await submissionService.getPublicSubmissions(quizSlug!);
+} catch (err: any) {
+    console.error('Failed to fetch submissions:', err);
+    error = "Database not available. Submissions cannot be loaded at this time.";
+}
+
+export const prerender = false;
+---
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Submissions - {quiz.title}</title>
+    <style>
+        :root {
+            --bg: #010409;
+            --fg: #e6edf3;
+            --border: #30363d;
+            --accent: #2f81f7;
+            --success: #238636;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--fg);
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            width: 100%;
+        }
+        .back-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+        .submission-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .submission-table th, .submission-table td {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .submission-table th {
+            background-color: #161b22;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #8b949e;
+        }
+        .submission-table tr:hover {
+            background-color: #0d1117;
+        }
+        .user-id {
+            color: var(--accent);
+            font-weight: 500;
+        }
+        .score {
+            font-family: monospace;
+            background-color: #1f242c;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .date {
+            color: #8b949e;
+            font-size: 0.85rem;
+        }
+        .error-message {
+            background-color: rgba(248, 81, 73, 0.1);
+            color: #f85149;
+            padding: 1rem;
+            border: 1px solid rgba(248, 81, 73, 0.4);
+            border-radius: 6px;
+            margin-bottom: 2rem;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #8b949e;
+            border: 1px dashed var(--border);
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <UserAuth />
+    <div class="container">
+        <header>
+            <div>
+                <a href="/" class="back-link">← Back to Quizzes</a>
+                <h1>Public Submissions: {quiz.title}</h1>
+            </div>
+        </header>
+
+        {error && <div class="error-message">{error}</div>}
+
+        {submissions.length > 0 ? (
+            <table class="submission-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Score</th>
+                        <th>Submitted</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {submissions.map((sub) => (
+                        <tr>
+                            <td class="user-id"><a href={`https://github.com/${sub.userId}`}>{sub.userId}</a></td>
+                            <td>
+                                <span class="score">{sub.score} / {sub.total}</span>
+                                <span style={{marginLeft: '8px', color: sub.score === sub.total ? '#3fb950' : '#8b949e'}}>
+                                    ({Math.round((sub.score / sub.total) * 100)}%)
+                                </span>
+                            </td>
+                            <td className="date">
+                                {new Date(sub.createdAt + " UTC").toLocaleString("en-US", {
+                                    timeZone: "America/Los_Angeles",
+                                    hour12: true,
+                                })}
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        ) : (
+            !error && <div class="empty-state">No submissions yet. Be the first to complete this quiz!</div>
+        )}
+    </div>
+</body>
+</html>

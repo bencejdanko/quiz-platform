@@ -15,3 +15,8 @@ export async function getAllQuizzes() {
     
     return quizzes;
 }
+
+export async function getQuizBySlug(slug: string) {
+    const quizzes = await getAllQuizzes();
+    return quizzes.find(q => q.slug === slug);
+}

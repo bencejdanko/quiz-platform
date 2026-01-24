@@ -1,0 +1,188 @@
+---
+import { getSession } from 'auth-astro/server';
+import { SignIn, SignOut } from 'auth-astro/components';
+
+const session = await getSession(Astro.request);
+---
+
+<div class="user-auth-wrapper">
+  {session ? (
+    <div class="user-menu" id="user-menu">
+      <button class="avatar-button" id="avatar-button" aria-expanded="false" aria-haspopup="true">
+        {session.user?.image ? (
+            <img src={session.user.image} alt={session.user.name ?? 'User'} class="avatar-img" />
+        ) : (
+            <div class="avatar-placeholder">{session.user?.name?.charAt(0) ?? 'U'}</div>
+        )}
+      </button>
+      <div class="dropdown-menu" id="user-dropdown">
+        <div class="dropdown-header">
+          <span class="username">{session.user?.name}</span>
+          <span class="useremail">{session.user?.username}</span>
+        </div>
+        <hr class="dropdown-divider" />
+        <SignOut class="sign-out-btn">
+            <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
+                <path d="M2 2.75C2 1.784 2.784 1 3.75 1h2.5a.75.75 0 0 1 0 1.5h-2.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h2.5a.75.75 0 0 1 0 1.5h-2.5A1.75 1.75 0 0 1 2 13.25V2.75zm10.44 4.5H6.75a.75.75 0 0 0 0 1.5h5.69l-1.97 1.97a.75.75 0 1 0 1.06 1.06l3.25-3.25a.75.75 0 0 0 0-1.06l-3.25-3.25a.75.75 0 1 0-1.06 1.06l1.97 1.97z"></path>
+            </svg>
+            Sign out
+        </SignOut>
+      </div>
+    </div>
+  ) : (
+    <SignIn provider="github" class="login-btn">
+      <svg height="18" viewBox="0 0 16 16" width="18" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+      Login
+    </SignIn>
+  )}
+</div>
+
+<style>
+  .user-auth-wrapper {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    z-index: 100;
+  }
+
+  .login-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: transparent;
+    color: var(--fg);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .login-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.4);
+  }
+
+  .user-menu {
+    position: relative;
+  }
+
+  .avatar-button {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    border-radius: 50%;
+    overflow: hidden;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: border-color 0.2s;
+  }
+
+  .avatar-button:hover {
+    border-color: var(--accent);
+  }
+
+  .avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    background-color: #30363d;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    background-color: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    min-width: 180px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    display: none;
+    flex-direction: column;
+    z-index: 101;
+  }
+
+  .dropdown-menu.show {
+    display: flex;
+  }
+
+  .dropdown-header {
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .username {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--fg);
+  }
+
+  .useremail {
+    font-size: 0.8rem;
+    color: #8b949e;
+  }
+
+  .dropdown-divider {
+    border: none;
+    border-top: 1px solid #30363d;
+    margin: 0;
+  }
+
+  .sign-out-btn {
+    padding: 0.75rem 1rem;
+    background: none;
+    border: none;
+    color: var(--fg);
+    text-align: left;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .sign-out-btn:hover {
+    background-color: #1f242c;
+  }
+</style>
+
+<script>
+  const avatarButton = document.getElementById('avatar-button');
+  const userDropdown = document.getElementById('user-dropdown');
+
+  if (avatarButton && userDropdown) {
+    avatarButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      userDropdown.classList.toggle('show');
+      const expanded = avatarButton.getAttribute('aria-expanded') === 'true';
+      avatarButton.setAttribute('aria-expanded', (!expanded).toString());
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!userDropdown.contains(e.target as Node) && !avatarButton.contains(e.target as Node)) {
+        userDropdown.classList.remove('show');
+        avatarButton.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+</script>

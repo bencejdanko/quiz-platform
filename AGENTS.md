@@ -37,10 +37,24 @@ The codebase was developed strictly following the TDD lifecycle: **Write Test (F
 
 ---
 
-## 🔧 Maintenance & Troubleshooting
+---
 
-### Adding a Quiz
-1. Create a `.md` file in `/quizzes/`.
-2. Add a `title` and a unique `slug` in the frontmatter.
-3. Write questions using `- [ ]` for options and `- [x]` for correct answers.
-4. Run `pnpm run build-quizzes` or restart `pnpm dev`.
+## 🗄️ Database Setup (Cloudflare D1)
+
+The application uses Cloudflare D1 for persistent storage of quiz submissions.
+
+### 1. Initial Setup
+1. Create a D1 database: `npx wrangler d1 create quiz-db`
+2. Update `wrangler.toml` with the `database_id` returned from the command.
+3. Apply migrations: `npx wrangler d1 migrations apply quiz-db --local` (for local) or `npx wrangler d1 migrations apply quiz-db --remote` (for production).
+
+### 2. Local Development Fallback
+For `pnpm dev`, if a D1 binding is not detected, the app automatically falls back to a **local SQLite database** (`quiz.db`) using Node's built-in `node:sqlite` module. This ensures zero-config development for new contributors.
+
+## 🧪 Testing Strategy
+
+The project uses a tiered testing approach:
+
+1. **Unit Tests (`*.test.ts`)**: Pure logic tests using Vitest and Mocks. Fast and deterministic.
+2. **Integration Tests (`*.integration.test.ts`)**: Verifies data persistence using the local SQLite fallback. Ensures that the schema matches the code implementation.
+3. **API Contracts**: The correctness map (`src/data/correctness.json`) acts as a contract between the static build and the live API.
