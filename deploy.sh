@@ -11,6 +11,9 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
+# Build the project
+pnpm run build
+
 # Source the .env file to get variables
 source .env
 
