@@ -1,0 +1,48 @@
+---
+interface Props {
+	authors?: string[];
+}
+
+const { authors } = Astro.props;
+---
+
+{authors && authors.length > 0 && (
+	<div class="authors">
+		{authors.map((author) => (
+			<a href={`https://github.com/${author}`} target="_blank" rel="noopener noreferrer" class="author-link" title={`View ${author}'s GitHub profile`}>
+				<img src={`https://github.com/${author}.png?size=40`} alt={author} class="author-avatar" />
+				<span class="author-name">{author}</span>
+			</a>
+		))}
+	</div>
+)}
+
+<style>
+	.authors {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+		margin-top: 2rem;
+	}
+	.author-link {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		text-decoration: none;
+		color: #8b949e;
+		font-size: 0.85rem;
+		transition: color 0.2s;
+	}
+	.author-link:hover {
+		color: #58a6ff;
+	}
+	.author-avatar {
+		width: 20px;
+		height: 20px;
+		border-radius: 50%;
+		border: 1px solid #30363d;
+	}
+	.author-name {
+		font-weight: 500;
+	}
+</style>

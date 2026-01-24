@@ -3,12 +3,33 @@
   "type": "module",
   "version": "0.0.1",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
+    "dev": "pnpm run build-quizzes && astro dev",
+    "build": "pnpm run build-quizzes && astro build",
+    "build-quizzes": "tsx scripts/build-quizzes.js",
+    "test": "vitest run",
     "preview": "astro preview",
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^5.16.15"
+    "@astrojs/node": "^9.5.2",
+    "@types/katex": "^0.16.8",
+    "astro": "^5.16.15",
+    "katex": "^0.16.27",
+    "rehype-katex": "^7.0.1",
+    "rehype-stringify": "^10.0.1",
+    "remark-math": "^6.0.0",
+    "remark-rehype": "^11.1.2",
+    "unified": "^11.0.5"
+  },
+  "devDependencies": {
+    "@types/mdast": "^4.0.4",
+    "@types/node": "^25.0.10",
+    "gray-matter": "^4.0.3",
+    "mdast-util-to-string": "^4.0.0",
+    "remark": "^15.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "tsx": "^4.21.0",
+    "vitest": "^4.0.18"
   }
 }

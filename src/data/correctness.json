@@ -1,0 +1,43 @@
+{
+  "astronomy-basics": {
+    "d929fa182570": [
+      0
+    ],
+    "878593dd1528": [
+      0,
+      1
+    ]
+  },
+  "world-capitals": {
+    "c990cc06e5e7": [
+      "paris"
+    ],
+    "d5fe4ac7a938": [
+      "tokyo"
+    ],
+    "dea656d4441f": [
+      0,
+      2
+    ]
+  },
+  "math-challenges": {
+    "52c3533c38f8": [
+      0
+    ],
+    "d13ebd914b22": [
+      0
+    ],
+    "10ef1a431476": [
+      0
+    ]
+  },
+  "web-dev-101": {
+    "f0e27bc7d3fe": [
+      1
+    ],
+    "f8d9daa404d2": [
+      0,
+      2
+    ]
+  }
+}
