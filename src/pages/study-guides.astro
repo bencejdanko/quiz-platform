@@ -1,0 +1,137 @@
+---
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+
+export const prerender = true;
+
+const studyGuidesDir = path.join(process.cwd(), 'study_guides');
+let guides: { name: string, pdf: string, title: string }[] = [];
+
+try {
+    const files = await fs.readdir(studyGuidesDir);
+    const mdFiles = files.filter(f => f.endsWith('.md'));
+    
+    for (const file of mdFiles) {
+        const content = await fs.readFile(path.join(studyGuidesDir, file), 'utf-8');
+        const match = content.match(/^title:\s*(.*)$/m);
+        const title = match ? match[1].replace(/^['"]|['"]$/g, '') : file.replace('.md', '');
+        guides.push({
+            name: file.replace('.md', ''),
+            pdf: `/study-guides/${file.replace('.md', '.pdf')}`,
+            title
+        });
+    }
+} catch (e) {
+    console.error('Failed to load study guides', e);
+}
+---
+
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width" />
+        <title>Study Guides</title>
+        <style>
+            :root {
+                --bg: #010409;
+                --fg: #ffffff;
+                --accent: #58a6ff;
+                --card-bg: #0d1117;
+                --card-border: #30363d;
+            }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+                background-color: var(--bg);
+                color: var(--fg);
+                margin: 0;
+                padding: 2rem;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                min-height: 100vh;
+            }
+            .container {
+                width: 100%;
+                max-width: 800px;
+            }
+            header {
+                margin-bottom: 2rem;
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+            }
+            .back-link {
+                color: var(--accent);
+                text-decoration: none;
+                font-size: 0.9rem;
+            }
+            .back-link:hover {
+                text-decoration: underline;
+            }
+            h1 {
+                font-size: 2rem;
+                margin: 0;
+            }
+            .guide-list {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                gap: 1.5rem;
+            }
+            .guide-card {
+                background: var(--card-bg);
+                border: 1px solid var(--card-border);
+                padding: 1.5rem;
+                border-radius: 8px;
+                text-decoration: none;
+                color: inherit;
+                transition: transform 0.2s, border-color 0.2s;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+            }
+            .guide-card:hover {
+                transform: translateY(-2px);
+                border-color: var(--accent);
+            }
+            .guide-card h2 {
+                margin: 0 0 1rem 0;
+                font-size: 1.2rem;
+                color: var(--fg);
+            }
+            .download-link {
+                background: #238636;
+                color: white;
+                text-align: center;
+                padding: 0.5rem;
+                border-radius: 6px;
+                font-weight: 500;
+                font-size: 0.9rem;
+                margin-top: auto;
+            }
+            .download-link:hover {
+                background: #2ea043;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                <a href="/" class="back-link">← Back to Quizzes</a>
+                <h1>Study Guides</h1>
+            </header>
+            
+            <div class="guide-list">
+                {guides.map(guide => (
+                    <a href={guide.pdf} class="guide-card" target="_blank">
+                        <h2>{guide.title}</h2>
+                        <div class="download-link">View PDF</div>
+                    </a>
+                ))}
+            </div>
+            
+            {guides.length === 0 && (
+                <p style="text-align: center; color: #8b949e;">No study guides available yet.</p>
+            )}
+        </div>
+    </body>
+</html>

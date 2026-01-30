@@ -3,9 +3,10 @@
   "type": "module",
   "version": "0.0.1",
   "scripts": {
-    "dev": "pnpm run build-quizzes && astro dev",
-    "build": "pnpm run build-quizzes && astro build",
+    "dev": "pnpm run build-quizzes && pnpm run build-study-guides && astro dev",
+    "build": "pnpm run build-quizzes && pnpm run build-study-guides && astro build",
     "build-quizzes": "tsx scripts/build-quizzes.js",
+    "build-study-guides": "tsx scripts/build-study-guides.js",
     "test": "vitest run",
     "check": "astro check",
     "preview": "astro preview",
